@@ -1,0 +1,156 @@
+# ===============================================================================================================
+# DockerFile for "nlp/pytorch:python3_torch1.8"
+# ---------------------------------------------------------------------------------------------------------------
+# Module list:
+# Python3               3.8   (apt)
+# PyTorch               1.8   (pip)
+# Packages for NLP
+#                       spacy \ textacy \ nltk \ stanfordcorenlp \ gensim \ jieba \ TextBlob \
+# ===============================================================================================================
+
+FROM nvidia/cuda:11.2.0-cudnn8-devel-ubuntu20.04
+
+MAINTAINER Zhao Ming <oldbulb@fuji.waseda.jp>
+
+ENV LANG C.UTF-8
+# ===============================================================================================================
+# source files
+# ---------------------------------------------------------------------------------------------------------------
+RUN rm -rf /etc/apt/sources.list \
+           /var/lib/apt/lists/* \
+           /etc/apt/sources.list.d/cuda.list \
+           /etc/apt/sources.list.d/nvidia-ml.list
+
+ADD sources.list /etc/apt/
+
+# ===============================================================================================================
+# tools
+# ---------------------------------------------------------------------------------------------------------------
+RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
+    PIP_INSTALL="pip --no-cache-dir install -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com  --upgrade" && \
+    apt-get update && \
+
+    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+        build-essential \
+        apt-utils \
+        ca-certificates \
+        wget \
+        git \
+        vim \
+        libssl-dev \
+        curl \
+        unzip \
+        unrar \
+        cmake
+
+# ===============================================================================================================
+# python
+# ---------------------------------------------------------------------------------------------------------------
+RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
+    PIP_INSTALL="pip --no-cache-dir install -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com  --upgrade" && \
+    apt-get update && \
+
+    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+    software-properties-common \
+    && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+
+    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+        python3.8 \
+        python3.8-dev \
+        python3-distutils-extra \
+	default-libmysqlclient-dev \
+        && \
+    wget -O ~/get-pip.py \
+        https://bootstrap.pypa.io/get-pip.py && \
+    python3.8 ~/get-pip.py && \
+    ln -s /usr/bin/python3.8 /usr/local/bin/python3 && \
+    ln -s /usr/bin/python3.8 /usr/local/bin/python && \
+
+    $PIP_INSTALL \
+        setuptools \
+        numpy \
+        scipy \
+        pandas \
+        cloudpickle \
+        scikit-image>=0.14.2 \
+        scikit-learn \
+        matplotlib \
+        Cython \
+        tqdm
+
+
+# ===============================================================================================================
+# PyTorch
+# ---------------------------------------------------------------------------------------------------------------
+
+RUN PIP_INSTALL="pip --no-cache-dir install -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com  --upgrade" && \
+    apt-get update && \
+    $PIP_INSTALL \
+        future \
+        numpy \
+        protobuf \
+        enum34 \
+        pyyaml \
+        typing \
+        && \
+
+    $PIP_INSTALL \
+        --pre torch torchvision torchtext -f \
+        https://download.pytorch.org/whl/nightly/cu112/torch_nightly.html \
+        && \
+
+# ===============================================================================================================
+# Install OpenNMT-py \ Transformers \
+# Install SpaCy \ textacy \ nltk \ stanfordcorenlp \ gensim \ jieba \ TextBlob
+# ---------------------------------------------------------------------------------------------------------------
+
+    $PIP_INSTALL \
+        OpenNMT-py \
+        transformers \
+        spacy \
+        textacy \
+        nltk \
+        stanfordcorenlp \
+        gensim \
+        jieba \
+        TextBlob \
+        && \
+
+
+# ===============================================================================================================
+# Set up notebook config
+# ---------------------------------------------------------------------------------------------------------------
+    $PIP_INSTALL \
+        jupyter        
+
+# ===============================================================================================================
+# ssh
+# ---------------------------------------------------------------------------------------------------------------
+
+RUN apt-get install -y --no-install-recommends openssh-server && \
+    mkdir -p /var/run/sshd && \
+    mkdir -p /root/.ssh && \
+
+    echo 'root:123' | chpasswd && \
+
+    sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd && \
+    echo "export VISIBLE=now" >> /etc/profile
+
+# ===============================================================================================================
+# config & cleanup
+# ---------------------------------------------------------------------------------------------------------------
+
+RUN ldconfig && \
+    apt-get clean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/* /tmp/* ~/*
+
+ADD run_jupyter.sh /home
+RUN chmod +x /home/run_jupyter.sh
+
+ENTRYPOINT ["sh","-c","/home/run_jupyter.sh" ]
+# ===============================================================================================================
+
