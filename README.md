@@ -1,4 +1,4 @@
-<div align=center>![だいたい10分でざっくり押さえるDockerの基本 – WPJ](https://cdn.webprofessional.jp/wp-content/uploads/sites/2/2016/12/01095655/1480553813_image2.png)</div>
+![だいたい10分でざっくり押さえるDockerの基本 – WPJ](https://cdn.webprofessional.jp/wp-content/uploads/sites/2/2016/12/01095655/1480553813_image2.png)
 
 # 1. Guideline of docker NLP images
 
